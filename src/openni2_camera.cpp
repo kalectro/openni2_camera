@@ -13,33 +13,28 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "openni2_camera_node");
 	ros::NodeHandle nh;
 
+	ROS_INFO("creating image_transport...");
 	image_transport::ImageTransport it(nh);
-
+	ROS_INFO("advertising...");
 	// Initialize Publisher for depth image and advertise
 	image_transport::Publisher image_pub = it.advertise("depth_image", 1);
-	
-	ROS_INFO("Topic advertised");
-
+	ROS_INFO("starting OpenNI2...");
 	cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
 
 	try 
 	{
-		ROS_INFO("Initializing camera");
 		Status initStatus = OpenNI::initialize();
-		ROS_INFO("camera initialized");
 		if (initStatus != STATUS_OK)
 		{
 			ROS_ERROR("Device could not be initialized because %s", OpenNI::getExtendedError());
 			return -1;
 		}
-		ROS_INFO("Opening camera device");
 		openni::Device device;
 		Status openStatus = device.open(ANY_DEVICE);
 		if ( openStatus != STATUS_OK ) {
 			ROS_ERROR("Device could not be opened because %s", OpenNI::getExtendedError());
 			return -1;
 		}
-		ROS_INFO("Opened");
 
 		openni::VideoStream depthStream;
 		depthStream.create(device, SENSOR_DEPTH);
@@ -68,6 +63,7 @@ int main(int argc, char **argv)
 						// convert cv::Mat into cv_bridge image
 						cv_ptr->image = depthImage;
 						cv_ptr->encoding = "mono16";
+						cv_ptr->header.frame_id = "openni2_depth";
 						image_pub.publish(cv_ptr->toImageMsg());
 					
         }
