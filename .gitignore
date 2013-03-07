@@ -11,3 +11,6 @@
 *.lai
 *.la
 *.a
+
+# we do not like temporary files in our repos!
+*~
