@@ -18,23 +18,28 @@ int main(int argc, char **argv)
 	// Initialize Publisher for depth image and advertise
 	image_transport::Publisher image_pub = it.advertise("depth_image", 1);
 	
+	ROS_INFO("Topic advertised");
+
 	cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
 
 	try 
 	{
+		ROS_INFO("Initializing camera");
 		Status initStatus = OpenNI::initialize();
+		ROS_INFO("camera initialized");
 		if (initStatus != STATUS_OK)
 		{
 			ROS_ERROR("Device could not be initialized because %s", OpenNI::getExtendedError());
 			return -1;
 		}
-
+		ROS_INFO("Opening camera device");
 		openni::Device device;
 		Status openStatus = device.open(ANY_DEVICE);
 		if ( openStatus != STATUS_OK ) {
 			ROS_ERROR("Device could not be opened because %s", OpenNI::getExtendedError());
 			return -1;
 		}
+		ROS_INFO("Opened");
 
 		openni::VideoStream depthStream;
 		depthStream.create(device, SENSOR_DEPTH);
