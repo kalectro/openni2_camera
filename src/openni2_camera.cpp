@@ -13,13 +13,11 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "openni2_camera_node");
 	ros::NodeHandle nh;
 
-	ROS_INFO("creating image_transport...");
+	ROS_INFO("creating image_transport... this might take a while...");
 	image_transport::ImageTransport it(nh);
-	ROS_INFO("advertising...");
-	// Initialize Publisher for depth image and advertise
-	image_transport::Publisher image_pub = it.advertise("depth_image", 1);
-	ROS_INFO("starting OpenNI2...");
-	cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
+	// Initialize Publisher for depth and rgb image and advertise
+	image_transport::Publisher image_pub_depth = it.advertise("depth_image", 1);
+	image_transport::Publisher image_pub_rgb = it.advertise("rgb_image", 1);
 
 	try 
 	{
@@ -31,45 +29,78 @@ int main(int argc, char **argv)
 		}
 		openni::Device device;
 		Status openStatus = device.open(ANY_DEVICE);
-		if ( openStatus != STATUS_OK ) {
+		while ( openStatus != STATUS_OK ) {
 			ROS_ERROR("Device could not be opened because %s", OpenNI::getExtendedError());
-			return -1;
+			ROS_WARN("Will try again in 5 seconds");
+			ros::Duration(5).sleep();
+			openStatus = device.open(ANY_DEVICE);
 		}
 
 		openni::VideoStream depthStream;
+		openni::VideoStream rgbStream;
 		depthStream.create(device, SENSOR_DEPTH);
+		rgbStream.create(device, SENSOR_COLOR);
 		depthStream.start();
+		rgbStream.start();
 
-		std::vector<openni::VideoStream*> streams;
-		streams.push_back( &depthStream );
+		openni::VideoStream** streams = new openni::VideoStream*[2];
+		streams[0] = &depthStream;
+		streams[1] = &rgbStream;
 
 		cv::Mat depthImage;
+		cv::Mat rgbImage;
 
+		cv_bridge::CvImagePtr cv_ptr_depth(new cv_bridge::CvImage);
+		cv_bridge::CvImagePtr cv_ptr_rgb(new cv_bridge::CvImage);
 		while (ros::ok()) 
 		{
 	    int changedIndex;
-	    OpenNI::waitForAnyStream( &streams[0], streams.size(), &changedIndex );
-	    if ( changedIndex == 0 ) 
+	    OpenNI::waitForAnyStream( streams, 2, &changedIndex );
+
+			switch (changedIndex)
 			{
-        openni::VideoFrameRef colorFrame;
-        depthStream.readFrame( &colorFrame );
-        if ( colorFrame.isValid() ) 
+				case 0:
 				{
-          depthImage = cv::Mat(depthStream.getVideoMode().getResolutionY(),
-            depthStream.getVideoMode().getResolutionX(),
-            CV_16U, (char*)colorFrame.getData() );
-            //depthImage.convertTo( depthImage, CV_8U );
+					openni::VideoFrameRef depthFrame;
+					depthStream.readFrame( &depthFrame);
+					if ( depthFrame.isValid() ) 
+					{
+				    depthImage = cv::Mat(depthStream.getVideoMode().getResolutionY(),
+				      depthStream.getVideoMode().getResolutionX(),
+				      CV_16U, (char*)depthFrame.getData() );
+				    //depthImage.convertTo( depthImage, CV_8U );
 
 						// convert cv::Mat into cv_bridge image
-						cv_ptr->image = depthImage;
-						cv_ptr->encoding = "mono16";
-						cv_ptr->header.frame_id = "openni2_depth";
-						image_pub.publish(cv_ptr->toImageMsg());
-					
-        }
-	    }
+						cv_ptr_depth->image = depthImage;
+						cv_ptr_depth->encoding = "mono16";
+						cv_ptr_depth->header.frame_id = "/openni2_depth_frame";
+						image_pub_depth.publish(cv_ptr_depth->toImageMsg());
+				  }
+				} break;
+				case 1:	
+				{
+					openni::VideoFrameRef rgbFrame;
+					rgbStream.readFrame( &rgbFrame);
+					if ( rgbFrame.isValid() ) 
+					{
+						rgbImage = cv::Mat(rgbStream.getVideoMode().getResolutionY(),
+			      rgbStream.getVideoMode().getResolutionX(),
+			      CV_8UC3, (char*)rgbFrame.getData() );
+
+						// convert cv::Mat into cv_bridge image
+						cv_ptr_rgb->image = rgbImage;
+						cv_ptr_rgb->encoding = "rgb8";
+						cv_ptr_rgb->header.frame_id = "/openni2_rgb_frame";
+						image_pub_rgb.publish(cv_ptr_rgb->toImageMsg());	
+					}
+				} break;
+				default:
+					ROS_WARN("Index %i is neither a depth nor a rgb image stream", changedIndex);
+			}	
 		}
+		ros::spinOnce();
 	}
+
 	catch ( std::exception& ) {
 		ROS_ERROR("catching error.... got it!");
 	}
