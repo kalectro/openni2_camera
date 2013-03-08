@@ -50,6 +50,7 @@ int main(int argc, char **argv)
 
 		cv_bridge::CvImagePtr cv_ptr_depth(new cv_bridge::CvImage);
 		cv_bridge::CvImagePtr cv_ptr_rgb(new cv_bridge::CvImage);
+		ROS_INFO("Everything set up... lets stream some images");
 		while (ros::ok()) 
 		{
 	    int changedIndex;
@@ -94,9 +95,9 @@ int main(int argc, char **argv)
 				} break;
 				default:
 					ROS_WARN("Index %i is neither a depth nor a rgb image stream", changedIndex);
-			}	
-		}
+			}
 		ros::spinOnce();
+		}
 	}
 
 	catch ( std::exception& ) {
