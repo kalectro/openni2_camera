@@ -31,9 +31,7 @@ int main(int argc, char **argv)
 		Status openStatus = device.open(ANY_DEVICE);
 		while ( openStatus != STATUS_OK ) {
 			ROS_ERROR("Device could not be opened because %s", OpenNI::getExtendedError());
-			ROS_WARN("Will try again in 5 seconds");
-			ros::Duration(5).sleep();
-			openStatus = device.open(ANY_DEVICE);
+			return -1;
 		}
 
 		openni::VideoStream depthStream;
