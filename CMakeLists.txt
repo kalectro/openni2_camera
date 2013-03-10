@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(openni2_camera)
 
-find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs cv_bridge image_transport)
+find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs cv_bridge image_transport camera_info_manager)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp sensor_msgs cv_bridge image_transport
+  CATKIN_DEPENDS roscpp sensor_msgs cv_bridge image_transport camera_info_manager
   DEPENDS system_lib
 )
 
