@@ -7,15 +7,21 @@ find_package(OpenCV)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+#include libopenni2
+pkg_check_modules(PC_OPENNI2 REQUIRED libopenni2)
+
+
 catkin_package(
   CATKIN_DEPENDS roscpp sensor_msgs cv_bridge image_transport camera_info_manager
-  DEPENDS system_lib
+  DEPENDS system_lib libopenni2
 )
 
 ## Specify additional locations of header files
 include_directories(include
   ${catkin_INCLUDE_DIRS}
 )
+
+link_directories(${PC_OPENNI2_LIBRARY_DIRS})
 
 add_executable(openni2_camera_node src/openni2_camera.cpp)
 
